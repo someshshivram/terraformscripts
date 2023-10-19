@@ -1,3 +1,4 @@
+# Configure the Azure provider
 provider "azurerm" {
   features {}
   subscription_id   = "d115ca25-a8e8-4afd-960b-135f53fcd450"
@@ -5,84 +6,99 @@ provider "azurerm" {
   client_id         = "c7b7fe63-197b-488f-b59c-bc8c9e819811"
   client_secret     = "etL8Q~NWIjIR7u2d7mBkdtUMfkeqeHx1gKCu4dki"
 }
-terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-      version = "~> 3.26"
-    }
-	databricks = {
-      source = "databricks/databricks"
-    }
+
+# Define variables
+variable "resource_group_name" {
+  description = "AZmyResourceGroupUser Azure Resource Group"
+  default     = "AZmyResourceGroupUser"
+}
+
+variable "databricks_workspace_name" {
+  description = "AZmyDatabricksWorkspaceUser Azure Databricks Workspace"
+  default     = "AZmyDatabricksWorkspaceUser"
+}
+
+variable "data_factory_name" {
+  description = "AZmyDataFactoryUser Azure Data Factory"
+  default     = "AZmyDataFactoryUser"
+}
+
+variable "vm_name" {
+  description = "AZmyLinuxVMUser Azure Linux VM"
+  default     = "AZmyLinuxVMUser"
+}
+
+# Create an Azure Resource Group
+resource "azurerm_resource_group" "example" {
+  name     = var.resource_group_name
+  location = "East US" # Change this to your desired region
+}
+
+# Create an Azure Databricks Workspace
+resource "azurerm_databricks_workspace" "example" {
+  name                = var.databricks_workspace_name
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  sku                 = "standard" # Change this to your desired SKU
+}
+
+# Create an Azure Data Factory
+resource "azurerm_data_factory" "example" {
+  name                = var.data_factory_name
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+}
+
+# Create an Azure Linux Virtual Machine
+resource "azurerm_linux_virtual_machine" "example" {
+  name                = var.vm_name
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
+  size                = "Standard_DS2_v2" # Change this to your desired VM size
+  admin_username      = "adminuser"
+  admin_password      = "Password1234!" # Replace with your desired password
+  disable_password_authentication = false
+  network_interface_ids = [azurerm_network_interface.example.id]
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "18.04-LTS"
+    version   = "latest"
+  }
+
+  custom_data = base64encode("apt-get update && apt-get install -y apache2")
+}
+
+# Create a network interface for the VM
+resource "azurerm_network_interface" "example" {
+  name                = "example-nic"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.example.id
+    private_ip_address_allocation = "Dynamic"
   }
 }
 
-resource "azurerm_resource_group" "data_platform" {
-  name = "data_platform"
-  location = "westus2"
+# Define a virtual network and subnet for the VM
+resource "azurerm_virtual_network" "example" {
+  name                = "example-network"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  address_space       = ["10.0.0.0/16"]
 }
 
-resource "azurerm_storage_account" "data_lake" {
-  name = "datalake"
-  location = azurerm_resource_group.data_platform.location
-  resource_group_name = azurerm_resource_group.data_platform.name
-  account_tier = "Standard"
-  account_replication_type = "LRS"
-}
-
-resource "azurerm_storage_data_lake_gen2_filesystem" "data_lake_filesystem" {
-  name = "datalakefilesystem"
-  storage_account_id = azurerm_storage_account.data_lake.id
-}
-
-resource "azurerm_data_factory" "data_factory" {
-  name = "datafactory"
-  location = azurerm_resource_group.data_platform.location
-  resource_group_name = azurerm_resource_group.data_platform.name
-}
-
-resource "azurerm_databricks_workspace" "databricks_workspace" {
-  name = "databricks_workspace"
-  resource_group_name = azurerm_resource_group.data_platform.name
-  location = azurerm_resource_group.data_platform.location
-  sku = "standard"
-}
-# Use the latest Databricks Runtime
-# Long Term Support (LTS) version.
-data "databricks_spark_version" "latest_lts" {
-  long_term_support = true
-  depends_on = [azurerm_databricks_workspace.databricks_workspace]
-}
-data "databricks_node_type" "smallest" {
-  local_disk = true
-}
-resource "databricks_cluster" "databricks_cluster" {
-  cluster_name = "databricks_cluster"
-  spark_version = data.databricks_spark_version.latest_lts.id
-  //workspace_resource_id = azurerm_databricks_workspace.databricks_workspace.id
-  node_type_id = data.databricks_node_type.smallest.id
-  autoscale {
-    min_workers = 1
-    max_workers = 3
-  }
-}
-
-output "data_lake_account_name" {
-  value = azurerm_storage_account.data_lake.name
-}
-
-output "data_lake_filesystem_name" {
-  value = azurerm_storage_data_lake_gen2_filesystem.data_lake_filesystem.name
-}
-
-output "data_factory_name" {
-  value = azurerm_data_factory.data_factory.name
-}
-
-output "databricks_workspace_name" {
-  value = azurerm_databricks_workspace.databricks_workspace.name
-}
-
-output "databricks_cluster_name" {
-  value = databricks_cluster.databricks_cluster.cluster_name
+resource "azurerm_subnet" "example" {
+  name                 = "example-subnet"
+  resource_group_name  = azurerm_resource_group.example.name
+  virtual_network_name = azurerm_virtual_network.example.name
+  address_prefixes     = ["10.0.2.0/24"]
 }
