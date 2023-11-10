@@ -9,23 +9,23 @@ provider "azurerm" {
 
 # Define variables
 variable "resource_group_name" {
-  description = "AZmyResourceGroupUser Azure Resource Group"
-  default     = "AZmyResourceGroupUser"
+  description = "AZAZmyResourceGroupUser Azure Resource Group"
+  default     = "AZAZmyResourceGroupUser"
 }
 
 variable "databricks_workspace_name" {
-  description = "AZmyDatabricksWorkspaceUser Azure Databricks Workspace"
-  default     = "AZmyDatabricksWorkspaceUser"
+  description = "AZAZmyDatabricksWorkspaceUser Azure Databricks Workspace"
+  default     = "AZAZmyDatabricksWorkspaceUser"
 }
 
 variable "data_factory_name" {
-  description = "AZmyDataFactoryUser Azure Data Factory"
-  default     = "AZmyDataFactoryUser"
+  description = "AZAZmyDataFactoryUser Azure Data Factory"
+  default     = "AZAZmyDataFactoryUser"
 }
 
 variable "vm_name" {
-  description = "AZmyLinuxVMUser Azure Linux VM"
-  default     = "AZmyLinuxVMUser"
+  description = "AZAZmyLinuxVMUser Azure Linux VM"
+  default     = "AZAZmyLinuxVMUser"
 }
 
 # Create an Azure Resource Group
@@ -77,7 +77,7 @@ resource "azurerm_linux_virtual_machine" "example" {
 
 # Create a network interface for the VM
 resource "azurerm_network_interface" "example" {
-  name                = "example-nic"
+  name                = "AZAZexample-nic"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
 
@@ -90,14 +90,14 @@ resource "azurerm_network_interface" "example" {
 
 # Define a virtual network and subnet for the VM
 resource "azurerm_virtual_network" "example" {
-  name                = "example-network"
+  name                = "AZAZexample-network"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
   address_space       = ["10.0.0.0/16"]
 }
 
 resource "azurerm_subnet" "example" {
-  name                 = "example-subnet"
+  name                 = "AZAZexample-subnet"
   resource_group_name  = azurerm_resource_group.example.name
   virtual_network_name = azurerm_virtual_network.example.name
   address_prefixes     = ["10.0.2.0/24"]
